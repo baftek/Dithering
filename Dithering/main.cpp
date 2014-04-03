@@ -87,7 +87,7 @@ void redraw()
 	al_clear_to_color(al_map_rgb(20, 20, 75));
 	al_draw_bitmap(inputBitmap, 0, 20, 0);
 	al_draw_bitmap(outputBitmap, XpicSize+10, 20, 0);
-	al_draw_text(font, al_map_rgb(200, 200, 200), 0, 0, 0, "Oryginal");
+	al_draw_text(font, al_map_rgb(200, 200, 200), 0, 0, 0, "Original");
 	al_draw_text(font, al_map_rgb(200, 200, 200), XpicSize+10, 0, 0, "Processed");
 	switch(dithering_mode)
 	{
