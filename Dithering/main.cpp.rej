@@ -1,0 +1,39 @@
+diff a/Dithering/main.cpp b/Dithering/main.cpp	(rejected hunks)
+@@ -114,27 +114,35 @@
+ 	{
+ 	case 1: al_draw_textf(font, al_map_rgb(255, 255, 255), 400, 30+YpicSize, 0, "Threshold level: %d", ditheringVariables[1]); break;
+ 	case 3: 
+-	case 2: al_draw_textf(font, al_map_rgb(255, 255, 255), 400, 30+YpicSize, 0, "Number of ranges: %d", ditheringVariables[2]); break;
++	case 2: al_draw_textf(font, al_map_rgb(255, 255, 255), 400, 30+YpicSize, 0, ((ditheringVariables[2] == 255) ? "Number of ranges: %d max" : "Number of ranges: %d"), ditheringVariables[2]); break;
+ 	}
+ 	al_flip_display();
+ }
+ 
+ void threshold_dithering()
+ {
++	//outputBitmap = al_clone_bitmap(inputBitmap);
+ 	al_set_target_bitmap(outputBitmap);
+ 	al_lock_bitmap(outputBitmap, al_get_bitmap_format(outputBitmap), ALLEGRO_LOCK_WRITEONLY);
+ 
+ 	ALLEGRO_COLOR al_black = al_map_rgb(0, 0, 0);
+ 	ALLEGRO_COLOR al_white = al_map_rgb(255, 255, 255);
+ 	ALLEGRO_COLOR pixel_read;
++	//unsigned char value_read;
++	//unsigned char value_over_3;
+ 
+ 	for(int y=0; y<YpicSize; y++)
+ 	{
+ 		for(int x=0; x<XpicSize; x++)
+ 		{
+-			pixel_read = al_get_pixel(inputBitmap, x, y);
++			pixel_read = al_get_pixel(outputBitmap, x, y);
++			//value_read = (unsigned char)(pixel_read.r*255);
++			//value_over_3 = value_read/3;
+ 			if((unsigned char)(pixel_read.r*255) <= ditheringVariables[1])
++				{
+ 					al_put_pixel(x, y, al_black);
++					//al_put_pixel((x+1)%255, y, pixel_read + value));
++				}
+ 			else
+ 				al_put_pixel(x, y, al_white);
+ 		}

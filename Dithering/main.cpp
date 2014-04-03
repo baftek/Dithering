@@ -22,6 +22,26 @@ int XpicSize, YpicSize;
 unsigned char ditheringVariables[5];
 char dithering_mode = 0;
 
+ALLEGRO_COLOR operator+ (ALLEGRO_COLOR c1, ALLEGRO_COLOR c2)   //float change)
+{
+	ALLEGRO_COLOR result;
+	result = c1;
+	result.r += c2.r;
+	result.g += c2.g;
+	result.b += c2.b;
+	return result;
+}
+
+ALLEGRO_COLOR operator/ (ALLEGRO_COLOR c1, float divider)
+{
+	ALLEGRO_COLOR result;
+	result = c1;
+	result.r /= divider;
+	result.g /= divider;
+	result.b /= divider;
+	return result;
+}
+
 int initialize_allegro(int XwindowSize, int YwindowSize)
 {	
 	//if(!al_init()) 
@@ -100,22 +120,40 @@ void redraw()
 
 void threshold_dithering()
 {
+	ALLEGRO_BITMAP *cloneBitmap;
+	cloneBitmap = al_clone_bitmap(inputBitmap);
 	al_set_target_bitmap(outputBitmap);
 	al_lock_bitmap(outputBitmap, al_get_bitmap_format(outputBitmap), ALLEGRO_LOCK_WRITEONLY);
+	al_lock_bitmap(cloneBitmap, al_get_bitmap_format(cloneBitmap), ALLEGRO_LOCK_READWRITE);
 
 	ALLEGRO_COLOR al_black = al_map_rgb(0, 0, 0);
 	ALLEGRO_COLOR al_white = al_map_rgb(255, 255, 255);
 	ALLEGRO_COLOR pixel_read;
 
-	for(int y=0; y<YpicSize; y++)
+	for(int y=0; y < YpicSize; y++)
 	{
-		for(int x=0; x<XpicSize; x++)
+		for(int x=0; x < XpicSize; x++)
 		{
-			pixel_read = al_get_pixel(inputBitmap, x, y);
-			if((unsigned char)(pixel_read.r*255) <= ditheringVariables[1])
+			pixel_read = al_get_pixel(cloneBitmap, x, y);
+			if(pixel_read.r <= ditheringVariables[1]/255.0)
+			{
+				al_set_target_bitmap(cloneBitmap);
+				al_put_pixel((x+1)%256, y, al_get_pixel(outputBitmap, (x+1)%256, y) + (pixel_read / 3));
+				al_put_pixel(x, (x+1)%256, al_get_pixel(outputBitmap, (x+1)%256, y) + (pixel_read / 3));
+				al_put_pixel((x+1)%256, (x+1)%256, al_get_pixel(outputBitmap, (x+1)%256, y) + (pixel_read / 3));
+				al_set_target_bitmap(outputBitmap);
 				al_put_pixel(x, y, al_black);
+			}
 			else
+			{
+				al_set_target_bitmap(cloneBitmap);
+				al_put_pixel((x+1)%256, y, al_get_pixel(outputBitmap, (x+1)%256, y) + (pixel_read / 3));
+				al_put_pixel(x, (x+1)%256, al_get_pixel(outputBitmap, (x+1)%256, y) + (pixel_read / 3));
+				al_put_pixel((x+1)%256, (x+1)%256, al_get_pixel(outputBitmap, (x+1)%256, y) + (pixel_read / 3));
+				al_set_target_bitmap(outputBitmap);
 				al_put_pixel(x, y, al_white);
+			}
+			//	al_put_pixel(x, y, al_white);
 		}
 	}
 	al_unlock_bitmap(outputBitmap);
@@ -206,7 +244,7 @@ int main()
 
 	redraw();
 
-	al_lock_bitmap(inputBitmap, al_get_bitmap_flags(inputBitmap), ALLEGRO_LOCK_READONLY);
+	//al_lock_bitmap(inputBitmap, al_get_bitmap_flags(inputBitmap), ALLEGRO_LOCK_READONLY);
 
 	while(1)
 	{
