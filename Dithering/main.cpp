@@ -122,7 +122,7 @@ void threshold_dithering()
 {
 	ALLEGRO_BITMAP *cloneBitmap;
 	cloneBitmap = al_clone_bitmap(inputBitmap);
-	al_set_target_bitmap(outputBitmap);
+	//al_set_target_bitmap(outputBitmap);
 	al_lock_bitmap(outputBitmap, al_get_bitmap_format(outputBitmap), ALLEGRO_LOCK_WRITEONLY);
 	al_lock_bitmap(cloneBitmap, al_get_bitmap_format(cloneBitmap), ALLEGRO_LOCK_READWRITE);
 
@@ -138,24 +138,30 @@ void threshold_dithering()
 			if(pixel_read.r <= ditheringVariables[1]/255.0)
 			{
 				al_set_target_bitmap(cloneBitmap);
-				al_put_pixel((x+1)%256, y, al_get_pixel(outputBitmap, (x+1)%256, y) + (pixel_read / 3));
-				al_put_pixel(x, (x+1)%256, al_get_pixel(outputBitmap, (x+1)%256, y) + (pixel_read / 3));
-				al_put_pixel((x+1)%256, (x+1)%256, al_get_pixel(outputBitmap, (x+1)%256, y) + (pixel_read / 3));
+				if(x < XpicSize)
+					al_put_pixel((x+1), y, al_get_pixel(outputBitmap, (x+1), y) + (pixel_read / 3));
+				if(y < YpicSize)
+					al_put_pixel(x, (y+1), al_get_pixel(outputBitmap, x, (y+1)) + (pixel_read / 3));
+				if(x < XpicSize && y < YpicSize)
+					al_put_pixel((x+1), (y+1), al_get_pixel(outputBitmap, (x+1), y) + (pixel_read / 3));
 				al_set_target_bitmap(outputBitmap);
 				al_put_pixel(x, y, al_black);
 			}
 			else
 			{
 				al_set_target_bitmap(cloneBitmap);
-				al_put_pixel((x+1)%256, y, al_get_pixel(outputBitmap, (x+1)%256, y) + (pixel_read / 3));
-				al_put_pixel(x, (x+1)%256, al_get_pixel(outputBitmap, (x+1)%256, y) + (pixel_read / 3));
-				al_put_pixel((x+1)%256, (x+1)%256, al_get_pixel(outputBitmap, (x+1)%256, y) + (pixel_read / 3));
+				if(x < XpicSize)
+					al_put_pixel((x+1), y, al_get_pixel(outputBitmap, (x+1), y) + (pixel_read / 3));
+				if(y < YpicSize)
+					al_put_pixel(x, (y+1), al_get_pixel(outputBitmap, x, (y+1)) + (pixel_read / 3));
+				if(x < XpicSize && y < YpicSize)
+					al_put_pixel((x+1), (y+1), al_get_pixel(outputBitmap, (x+1), y) + (pixel_read / 3));
 				al_set_target_bitmap(outputBitmap);
 				al_put_pixel(x, y, al_white);
 			}
-			//	al_put_pixel(x, y, al_white);
 		}
 	}
+	al_destroy_bitmap(cloneBitmap);
 	al_unlock_bitmap(outputBitmap);
 }
 
@@ -204,12 +210,14 @@ void extended_ranges_dithering()
 
 void dither(char mode)
 {
+	al_draw_text(font, al_map_rgb(200, 255, 200), XpicSize*2+10-100, YpicSize+10, 0, "working...");
 	switch(mode)
 	{
 	case 1: threshold_dithering(); break;
 	case 2: simple_ranges_dithering(); break;
 	case 3: extended_ranges_dithering(); break;
 	}
+	redraw();
 }
 //dodajac nowy algorytm: dither(), zmienna wlasna +/-, napis zmiennej
 // TODO: algorytm z dzieleniem na sasiadow, lista algorytmow, 
@@ -292,7 +300,6 @@ int main()
 
 			}
 			dither(dithering_mode);
-			redraw();
 			//al_rest(0.1); 
 		}
 	}
