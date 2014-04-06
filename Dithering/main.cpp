@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdio.h>
-#include <thread>
+//#include <thread>
 //#include <conio.h>
 #include <allegro5\allegro5.h>
 #include <allegro5\allegro_ttf.h>
@@ -39,6 +39,26 @@ ALLEGRO_COLOR operator/ (ALLEGRO_COLOR c1, float divider)
 	result.r /= divider;
 	result.g /= divider;
 	result.b /= divider;
+	return result;
+}
+
+ALLEGRO_COLOR operator+(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2)
+{
+	ALLEGRO_COLOR result;
+	result.a = c1.a + c2.a;
+	result.r = c1.r + c2.r;
+	result.g = c1.g + c2.g;
+	result.b = c1.b + c2.b;
+	return result;
+}
+
+ALLEGRO_COLOR operator/(ALLEGRO_COLOR c1, int div)
+{
+	ALLEGRO_COLOR result;
+	result.a = c1.a / div;
+	result.r = c1.r / div;
+	result.g = c1.g / div;
+	result.b = c1.b / div;
 	return result;
 }
 
@@ -113,7 +133,7 @@ void redraw()
 	{
 	case 1: al_draw_textf(font, al_map_rgb(255, 255, 255), 400, 30+YpicSize, 0, "Threshold level: %d", ditheringVariables[1]); break;
 	case 3: 
-	case 2: al_draw_textf(font, al_map_rgb(255, 255, 255), 400, 30+YpicSize, 0, "Number of ranges: %d", ditheringVariables[2]); break;
+	case 2: al_draw_textf(font, al_map_rgb(255, 255, 255), 400, 30+YpicSize, 0, ((ditheringVariables[2] == 255) ? "Number of ranges: %d max" : "Number of ranges: %d"), ditheringVariables[2]); break;
 	}
 	al_flip_display();
 }
@@ -123,12 +143,16 @@ void threshold_dithering()
 	ALLEGRO_BITMAP *cloneBitmap;
 	cloneBitmap = al_clone_bitmap(inputBitmap);
 	//al_set_target_bitmap(outputBitmap);
+	//outputBitmap = al_clone_bitmap(inputBitmap);
+	al_set_target_bitmap(outputBitmap);
 	al_lock_bitmap(outputBitmap, al_get_bitmap_format(outputBitmap), ALLEGRO_LOCK_WRITEONLY);
 	al_lock_bitmap(cloneBitmap, al_get_bitmap_format(cloneBitmap), ALLEGRO_LOCK_READWRITE);
 
 	ALLEGRO_COLOR al_black = al_map_rgb(0, 0, 0);
 	ALLEGRO_COLOR al_white = al_map_rgb(255, 255, 255);
 	ALLEGRO_COLOR pixel_read;
+	//unsigned char value_read;
+	//unsigned char value_over_3;
 
 	for(int y=0; y < YpicSize; y++)
 	{
@@ -147,6 +171,14 @@ void threshold_dithering()
 				al_set_target_bitmap(outputBitmap);
 				al_put_pixel(x, y, al_black);
 			}
+			pixel_read = al_get_pixel(outputBitmap, x, y);
+			//value_read = (unsigned char)(pixel_read.r*255);
+			//value_over_3 = value_read/3;
+			if((unsigned char)(pixel_read.r*255) <= ditheringVariables[1])
+				{
+					al_put_pixel(x, y, al_black);
+					//al_put_pixel((x+1)%255, y, pixel_read + value));
+				}
 			else
 			{
 				al_set_target_bitmap(cloneBitmap);
@@ -224,8 +256,10 @@ void dither(char mode)
 
 int main()
 {
+
+
 	ditheringVariables[1] = 50;
-	ditheringVariables[2] = 10;
+	ditheringVariables[2] = 15;
 	if(!al_init()) 
 	{
 		al_show_native_message_box(display, "Error", "Error", "Failed to initialize allegro!", NULL, ALLEGRO_MESSAGEBOX_ERROR);
@@ -286,7 +320,7 @@ int main()
 				{
 				case 1: ditheringVariables[1]+=3; break;
 				case 3:
-				case 2: if(ditheringVariables[2] != 0) ditheringVariables[2]++; break;
+				case 2: if(ditheringVariables[2] != 255) ditheringVariables[2]++; break;
 				}				
 			break;
 			case ALLEGRO_KEY_PAD_MINUS: 
