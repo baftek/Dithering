@@ -150,6 +150,7 @@ void threshold_dithering()
 {
 	ALLEGRO_BITMAP *cloneBitmap;
 	cloneBitmap = al_clone_bitmap(inputBitmap);
+	outputBitmap = al_clone_bitmap(inputBitmap);
 	al_set_target_bitmap(outputBitmap);
 	al_lock_bitmap(outputBitmap, al_get_bitmap_format(outputBitmap), ALLEGRO_LOCK_WRITEONLY);
 	al_lock_bitmap(cloneBitmap, al_get_bitmap_format(cloneBitmap), ALLEGRO_LOCK_READWRITE);
@@ -266,7 +267,7 @@ int main(int argc, char **argv)
 	if(argc > 1)
 		inputBitmap = al_load_bitmap(argv[1]);
 	else
-		inputBitmap = al_load_bitmap("111.bmp");
+		inputBitmap = al_load_bitmap("input.bmp");
 	if(!inputBitmap)
 	{
 		al_show_native_message_box(display, "Error", "Error", "Could not load image neither looking for input.bmp file nor filename given in first program argument.", NULL, ALLEGRO_MESSAGEBOX_ERROR);
