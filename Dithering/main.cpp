@@ -150,8 +150,6 @@ void threshold_dithering()
 {
 	ALLEGRO_BITMAP *cloneBitmap;
 	cloneBitmap = al_clone_bitmap(inputBitmap);
-	//al_set_target_bitmap(outputBitmap);
-	//outputBitmap = al_clone_bitmap(inputBitmap);
 	al_set_target_bitmap(outputBitmap);
 	al_lock_bitmap(outputBitmap, al_get_bitmap_format(outputBitmap), ALLEGRO_LOCK_WRITEONLY);
 	al_lock_bitmap(cloneBitmap, al_get_bitmap_format(cloneBitmap), ALLEGRO_LOCK_READWRITE);
@@ -159,8 +157,6 @@ void threshold_dithering()
 	ALLEGRO_COLOR al_black = al_map_rgb(0, 0, 0);
 	ALLEGRO_COLOR al_white = al_map_rgb(255, 255, 255);
 	ALLEGRO_COLOR pixel_read;
-	//unsigned char value_read;
-	//unsigned char value_over_3;
 
 	for(int y=0; y < YpicSize; y++)
 	{
@@ -179,14 +175,6 @@ void threshold_dithering()
 				al_set_target_bitmap(outputBitmap);
 				al_put_pixel(x, y, al_black);
 			}
-			pixel_read = al_get_pixel(outputBitmap, x, y);
-			//value_read = (unsigned char)(pixel_read.r*255);
-			//value_over_3 = value_read/3;
-			if((unsigned char)(pixel_read.r*255) <= ditheringVariables[1])
-				{
-					al_put_pixel(x, y, al_black);
-					//al_put_pixel((x+1)%255, y, pixel_read + value));
-				}
 			else
 			{
 				al_set_target_bitmap(cloneBitmap);
@@ -201,9 +189,12 @@ void threshold_dithering()
 			}
 		}
 	}
+	al_unlock_bitmap(cloneBitmap);
 	al_destroy_bitmap(cloneBitmap);
 	al_unlock_bitmap(outputBitmap);
 }
+
+#define rgb(x) al_map_rgb((x), (x), (x))
 
 void simple_ranges_dithering()
 {
@@ -213,7 +204,6 @@ void simple_ranges_dithering()
 	ALLEGRO_COLOR pixel_read; 
 	unsigned char widhtOfRange = 255 / ditheringVariables[2];
 
-#define rgb(x) al_map_rgb((x), (x), (x))
 
 	for(int y=0; y<YpicSize; y++)
 	{
@@ -235,8 +225,6 @@ void extended_ranges_dithering()
 	ALLEGRO_COLOR pixel_read; 
 	unsigned char widhtOfRange = 255 / ditheringVariables[2];
 
-#define rgb(x) al_map_rgb((x), (x), (x))
-
 	for(int y=0; y<YpicSize; y++)
 	{
 		for(int x=0; x<XpicSize; x++)
@@ -251,6 +239,7 @@ void extended_ranges_dithering()
 void dither(char mode)
 {
 	al_draw_text(font, al_map_rgb(200, 255, 200), XpicSize*2+10-100, YpicSize+50, 0, "working...");
+	al_flip_display();
 	switch(mode)
 	{
 	case 1: threshold_dithering(); break;
@@ -266,7 +255,7 @@ int main(int argc, char **argv)
 {
 
 
-	ditheringVariables[1] = 50;
+	ditheringVariables[1] = 150;
 	ditheringVariables[2] = 15;
 	if(!al_init()) 
 	{
