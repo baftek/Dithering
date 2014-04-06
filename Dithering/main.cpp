@@ -29,6 +29,28 @@ ALLEGRO_COLOR operator+ (ALLEGRO_COLOR c1, ALLEGRO_COLOR c2)   //float change)
 	result.r += c2.r;
 	result.g += c2.g;
 	result.b += c2.b;
+	if(result.r < 0) result.r = 0.0;
+	if(result.g < 0) result.g = 0.0;
+	if(result.b < 0) result.b = 0.0;
+	if(result.r > 1) result.r = 1.0;
+	if(result.g > 1) result.g = 1.0;
+	if(result.b > 1) result.b = 1.0;
+	return result;
+}
+
+ALLEGRO_COLOR operator- (ALLEGRO_COLOR c1, ALLEGRO_COLOR c2)   //float change)
+{
+	ALLEGRO_COLOR result;
+	result = c1;
+	result.r -= c2.r;
+	result.g -= c2.g;
+	result.b -= c2.b;
+	if(result.r < 0) result.r = 0.0;
+	if(result.g < 0) result.g = 0.0;
+	if(result.b < 0) result.b = 0.0;
+	if(result.r > 1) result.r = 1.0;
+	if(result.g > 1) result.g = 1.0;
+	if(result.b > 1) result.b = 1.0;
 	return result;
 }
 
@@ -38,27 +60,13 @@ ALLEGRO_COLOR operator/ (ALLEGRO_COLOR c1, float divider)
 	result = c1;
 	result.r /= divider;
 	result.g /= divider;
-	result.b /= divider;
-	return result;
-}
-
-ALLEGRO_COLOR operator+(ALLEGRO_COLOR c1, ALLEGRO_COLOR c2)
-{
-	ALLEGRO_COLOR result;
-	result.a = c1.a + c2.a;
-	result.r = c1.r + c2.r;
-	result.g = c1.g + c2.g;
-	result.b = c1.b + c2.b;
-	return result;
-}
-
-ALLEGRO_COLOR operator/(ALLEGRO_COLOR c1, int div)
-{
-	ALLEGRO_COLOR result;
-	result.a = c1.a / div;
-	result.r = c1.r / div;
-	result.g = c1.g / div;
-	result.b = c1.b / div;
+	result.b /= divider;	
+	if(result.r < 0) result.r = 0.0;
+	if(result.g < 0) result.g = 0.0;
+	if(result.b < 0) result.b = 0.0;
+	if(result.r > 1) result.r = 1.0;
+	if(result.g > 1) result.g = 1.0;
+	if(result.b > 1) result.b = 1.0;
 	return result;
 }
 
@@ -131,9 +139,9 @@ void redraw()
 	al_draw_text(font, al_map_rgb(200, 200, 200), XpicSize+10, 0, 0, "Processed");
 	switch(dithering_mode)
 	{
-	case 1: al_draw_textf(font, al_map_rgb(255, 255, 255), 400, 30+YpicSize, 0, "Threshold level: %d", ditheringVariables[1]); break;
+	case 1: al_draw_textf(font, al_map_rgb(255, 255, 255), 0, 30+YpicSize, 0, "Threshold level: %d", ditheringVariables[1]); break;
 	case 3: 
-	case 2: al_draw_textf(font, al_map_rgb(255, 255, 255), 400, 30+YpicSize, 0, ((ditheringVariables[2] == 255) ? "Number of ranges: %d max" : "Number of ranges: %d"), ditheringVariables[2]); break;
+	case 2: al_draw_textf(font, al_map_rgb(255, 255, 255), 0, 30+YpicSize, 0, "Number of ranges: %d", ditheringVariables[2]); break;
 	}
 	al_flip_display();
 }
@@ -162,12 +170,12 @@ void threshold_dithering()
 			if(pixel_read.r <= ditheringVariables[1]/255.0)
 			{
 				al_set_target_bitmap(cloneBitmap);
-				if(x < XpicSize)
+				if(x < XpicSize-1)
 					al_put_pixel((x+1), y, al_get_pixel(outputBitmap, (x+1), y) + (pixel_read / 3));
-				if(y < YpicSize)
+				if(y < YpicSize-1)
 					al_put_pixel(x, (y+1), al_get_pixel(outputBitmap, x, (y+1)) + (pixel_read / 3));
-				if(x < XpicSize && y < YpicSize)
-					al_put_pixel((x+1), (y+1), al_get_pixel(outputBitmap, (x+1), y) + (pixel_read / 3));
+				if(x < XpicSize-1 && y < YpicSize-1)
+					al_put_pixel((x+1), (y+1), al_get_pixel(outputBitmap, (x+1), (y+1)) + (pixel_read / 3));
 				al_set_target_bitmap(outputBitmap);
 				al_put_pixel(x, y, al_black);
 			}
@@ -182,12 +190,12 @@ void threshold_dithering()
 			else
 			{
 				al_set_target_bitmap(cloneBitmap);
-				if(x < XpicSize)
-					al_put_pixel((x+1), y, al_get_pixel(outputBitmap, (x+1), y) + (pixel_read / 3));
-				if(y < YpicSize)
-					al_put_pixel(x, (y+1), al_get_pixel(outputBitmap, x, (y+1)) + (pixel_read / 3));
-				if(x < XpicSize && y < YpicSize)
-					al_put_pixel((x+1), (y+1), al_get_pixel(outputBitmap, (x+1), y) + (pixel_read / 3));
+				if(x < XpicSize-1)
+					al_put_pixel((x+1), y, al_get_pixel(outputBitmap, (x+1), y) - (pixel_read / 3));
+				if(y < YpicSize-1)
+					al_put_pixel(x, (y+1), al_get_pixel(outputBitmap, x, (y+1)) - (pixel_read / 3));
+				if(x < XpicSize-1 && y < YpicSize-1)
+					al_put_pixel((x+1), (y+1), al_get_pixel(outputBitmap, (x+1), (y+1)) - (pixel_read / 3));
 				al_set_target_bitmap(outputBitmap);
 				al_put_pixel(x, y, al_white);
 			}
@@ -242,7 +250,7 @@ void extended_ranges_dithering()
 
 void dither(char mode)
 {
-	al_draw_text(font, al_map_rgb(200, 255, 200), XpicSize*2+10-100, YpicSize+10, 0, "working...");
+	al_draw_text(font, al_map_rgb(200, 255, 200), XpicSize*2+10-100, YpicSize+50, 0, "working...");
 	switch(mode)
 	{
 	case 1: threshold_dithering(); break;
@@ -254,7 +262,7 @@ void dither(char mode)
 //dodajac nowy algorytm: dither(), zmienna wlasna +/-, napis zmiennej
 // TODO: algorytm z dzieleniem na sasiadow, lista algorytmow, 
 
-int main()
+int main(int argc, char **argv)
 {
 
 
@@ -266,8 +274,10 @@ int main()
 		return -1;
 	}
 	al_init_image_addon();
-
-	inputBitmap = al_load_bitmap("BandW_butterfly.bmp");
+	if(argc > 1)
+		inputBitmap = al_load_bitmap(argv[1]);
+	else
+		inputBitmap = al_load_bitmap("111.bmp");
 	if(!inputBitmap)
 	{
 		al_show_native_message_box(display, "Error", "Error", "Could not load image neither looking for input.bmp file nor filename given in first program argument.", NULL, ALLEGRO_MESSAGEBOX_ERROR);
