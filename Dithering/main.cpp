@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdio.h>
-//#include <thread>
-//#include <conio.h>
+#include <stdlib.h>
 #include <allegro5\allegro5.h>
 #include <allegro5\allegro_ttf.h>
 #include <allegro5\allegro_font.h>
@@ -45,6 +44,22 @@ ALLEGRO_COLOR operator- (ALLEGRO_COLOR c1, ALLEGRO_COLOR c2)   //float change)
 	result.r -= c2.r;
 	result.g -= c2.g;
 	result.b -= c2.b;
+	if(result.r < 0) result.r = 0.0;
+	if(result.g < 0) result.g = 0.0;
+	if(result.b < 0) result.b = 0.0;
+	if(result.r > 1) result.r = 1.0;
+	if(result.g > 1) result.g = 1.0;
+	if(result.b > 1) result.b = 1.0;
+	return result;
+}
+
+ALLEGRO_COLOR operator* (ALLEGRO_COLOR c1, float multiple)
+{
+	ALLEGRO_COLOR result;
+	result = c1;
+	result.r *= multiple;
+	result.g *= multiple;
+	result.b *= multiple;
 	if(result.r < 0) result.r = 0.0;
 	if(result.g < 0) result.g = 0.0;
 	if(result.b < 0) result.b = 0.0;
@@ -139,14 +154,43 @@ void redraw()
 	al_draw_text(font, al_map_rgb(200, 200, 200), XpicSize+10, 0, 0, "Processed");
 	switch(dithering_mode)
 	{
-	case 1: al_draw_textf(font, al_map_rgb(255, 255, 255), 0, 30+YpicSize, 0, "Threshold level: %d", ditheringVariables[1]); break;
+	case 5: al_draw_textf(font, al_map_rgb(255, 255, 255), 0, 30+YpicSize, 0, "Number of ranges: %d", ditheringVariables[2]); break;
+	case 1: 
+	/*case 2: */
 	case 3: 
-	case 2: al_draw_textf(font, al_map_rgb(255, 255, 255), 0, 30+YpicSize, 0, "Number of ranges: %d", ditheringVariables[2]); break;
+	/*case 4:*/
+	
+	default: al_draw_textf(font, al_map_rgb(255, 255, 255), 0, 30+YpicSize, 0, "Threshold level: %d", ditheringVariables[1]); break;
 	}
 	al_flip_display();
 }
 
-void threshold_dithering()
+void simple_threshold_dithering(char random)
+{
+	if(random)
+		srand(time(NULL));
+	al_set_target_bitmap(outputBitmap);
+	al_lock_bitmap(outputBitmap, al_get_bitmap_format(outputBitmap), ALLEGRO_LOCK_WRITEONLY);
+
+	ALLEGRO_COLOR al_black = al_map_rgb(0, 0, 0);
+	ALLEGRO_COLOR al_white = al_map_rgb(255, 255, 255);
+	ALLEGRO_COLOR pixel_read;
+
+	for(int y=0; y<YpicSize; y++)
+	{
+		for(int x=0; x<XpicSize; x++)
+		{
+			pixel_read = al_get_pixel(inputBitmap, x, y);
+			if(pixel_read.r <= (random ? (rand()%255)/255.0 : ditheringVariables[1]/255.0) )
+				al_put_pixel(x, y, al_black);
+			else
+				al_put_pixel(x, y, al_white);
+		}
+	}
+	al_unlock_bitmap(outputBitmap);
+}
+
+void three_directions_threshold_dithering()
 {
 	ALLEGRO_BITMAP *cloneBitmap;
 	cloneBitmap = al_clone_bitmap(inputBitmap);
@@ -168,11 +212,11 @@ void threshold_dithering()
 			{
 				al_set_target_bitmap(cloneBitmap);
 				if(x < XpicSize-1)
-					al_put_pixel((x+1), y, al_get_pixel(outputBitmap, (x+1), y) + (pixel_read / 3));
+					al_put_pixel((x+1), y, al_get_pixel(cloneBitmap, (x+1), y) + (pixel_read / 3));
 				if(y < YpicSize-1)
-					al_put_pixel(x, (y+1), al_get_pixel(outputBitmap, x, (y+1)) + (pixel_read / 3));
+					al_put_pixel(x, (y+1), al_get_pixel(cloneBitmap, x, (y+1)) + (pixel_read / 3));
 				if(x < XpicSize-1 && y < YpicSize-1)
-					al_put_pixel((x+1), (y+1), al_get_pixel(outputBitmap, (x+1), (y+1)) + (pixel_read / 3));
+					al_put_pixel((x+1), (y+1), al_get_pixel(cloneBitmap, (x+1), (y+1)) + (pixel_read / 3));
 				al_set_target_bitmap(outputBitmap);
 				al_put_pixel(x, y, al_black);
 			}
@@ -180,11 +224,11 @@ void threshold_dithering()
 			{
 				al_set_target_bitmap(cloneBitmap);
 				if(x < XpicSize-1)
-					al_put_pixel((x+1), y, al_get_pixel(outputBitmap, (x+1), y) - (pixel_read / 3));
+					al_put_pixel((x+1), y, al_get_pixel(cloneBitmap, (x+1), y) - (pixel_read / 3));
 				if(y < YpicSize-1)
-					al_put_pixel(x, (y+1), al_get_pixel(outputBitmap, x, (y+1)) - (pixel_read / 3));
+					al_put_pixel(x, (y+1), al_get_pixel(cloneBitmap, x, (y+1)) - (pixel_read / 3));
 				if(x < XpicSize-1 && y < YpicSize-1)
-					al_put_pixel((x+1), (y+1), al_get_pixel(outputBitmap, (x+1), (y+1)) - (pixel_read / 3));
+					al_put_pixel((x+1), (y+1), al_get_pixel(cloneBitmap, (x+1), (y+1)) - (pixel_read / 3));
 				al_set_target_bitmap(outputBitmap);
 				al_put_pixel(x, y, al_white);
 			}
@@ -195,9 +239,61 @@ void threshold_dithering()
 	al_unlock_bitmap(outputBitmap);
 }
 
+void floyd_steinberg_dithering()
+{
+	ALLEGRO_BITMAP *cloneBitmap;
+	cloneBitmap = al_clone_bitmap(inputBitmap);
+	outputBitmap = al_clone_bitmap(inputBitmap);
+	al_set_target_bitmap(outputBitmap);
+	al_lock_bitmap(outputBitmap, al_get_bitmap_format(outputBitmap), ALLEGRO_LOCK_WRITEONLY);
+	al_lock_bitmap(cloneBitmap, al_get_bitmap_format(cloneBitmap), ALLEGRO_LOCK_READWRITE);
+
+	ALLEGRO_COLOR al_black = al_map_rgb(0, 0, 0);
+	ALLEGRO_COLOR al_white = al_map_rgb(255, 255, 255);
+	ALLEGRO_COLOR pixel_read;
+
+	for(int y=0; y < YpicSize; y++)
+	{
+		for(int x=0; x < XpicSize; x++)
+		{
+			pixel_read = al_get_pixel(cloneBitmap, x, y);
+			if(pixel_read.r <= ditheringVariables[1]/255.0)
+			{
+				al_set_target_bitmap(cloneBitmap);
+				if(x != 0)
+					al_put_pixel((x-1), (y+1), al_get_pixel(cloneBitmap, (x-1), (y+1)) + (pixel_read * 3 / 16));	// under left
+				if(x < XpicSize-1)
+					al_put_pixel((x+1), y, al_get_pixel(cloneBitmap, (x+1), y) + (pixel_read * 7 / 16));			// to the right
+				if(y < YpicSize-1)
+					al_put_pixel(x, (y+1), al_get_pixel(cloneBitmap, x, (y+1)) + (pixel_read * 5 / 16));			// under
+				if(x < XpicSize-1 && y < YpicSize-1)
+					al_put_pixel((x+1), (y+1), al_get_pixel(cloneBitmap, (x+1), (y+1)) + (pixel_read / 16));		// under right
+				al_set_target_bitmap(outputBitmap);
+				al_put_pixel(x, y, al_black);
+			}
+			else
+			{
+				al_set_target_bitmap(cloneBitmap);
+				if(x != 0)
+					al_put_pixel((x-1), (y+1), al_get_pixel(cloneBitmap, (x-1), (y+1)) - (pixel_read * 3 / 16));	// under left
+				if(x < XpicSize-1)
+					al_put_pixel((x+1), y, al_get_pixel(cloneBitmap, (x+1), y) - (pixel_read * 7 / 16));			// to the right
+				if(y < YpicSize-1)
+					al_put_pixel(x, (y+1), al_get_pixel(cloneBitmap, x, (y+1)) - (pixel_read * 5 / 16));			// under
+				if(x < XpicSize-1 && y < YpicSize-1)
+					al_put_pixel((x+1), (y+1), al_get_pixel(cloneBitmap, (x+1), (y+1)) - (pixel_read / 16));		// under right
+				al_set_target_bitmap(outputBitmap);
+				al_put_pixel(x, y, al_white);			}
+		}
+	}
+	al_unlock_bitmap(cloneBitmap);
+	al_destroy_bitmap(cloneBitmap);
+	al_unlock_bitmap(outputBitmap);
+}
+
 #define rgb(x) al_map_rgb((x), (x), (x))
 
-void simple_ranges_dithering()
+void leveling_dithering()
 {
 	al_set_target_bitmap(outputBitmap);
 	al_lock_bitmap(outputBitmap, al_get_bitmap_format(outputBitmap), ALLEGRO_LOCK_WRITEONLY);
@@ -218,24 +314,72 @@ void simple_ranges_dithering()
 	al_unlock_bitmap(outputBitmap);
 }
 
-void extended_ranges_dithering()
+void one_direction_dithering()
 {
 	al_set_target_bitmap(outputBitmap);
 	al_lock_bitmap(outputBitmap, al_get_bitmap_format(outputBitmap), ALLEGRO_LOCK_WRITEONLY);
+	//outputBitmap = al_clone_bitmap(inputBitmap);
 
-	ALLEGRO_COLOR pixel_read; 
-	unsigned char widhtOfRange = 255 / ditheringVariables[2];
+	ALLEGRO_COLOR al_black = al_map_rgb(0, 0, 0);
+	ALLEGRO_COLOR al_white = al_map_rgb(255, 255, 255);
+	ALLEGRO_COLOR pixel_read;
+	float error = 0;
 
 	for(int y=0; y<YpicSize; y++)
 	{
+		//int x;
+		//for( (y%2 ? x=0 : x=YpicSize-1); (y%2 ? x<XpicSize : x>=0); (y%2 ? x++ : x--))
 		for(int x=0; x<XpicSize; x++)
 		{
-			int i = 0, j = 0;
 			pixel_read = al_get_pixel(inputBitmap, x, y);
-			al_put_pixel(x, y, rgb((unsigned char)(pixel_read.r*255) - ((unsigned char)(pixel_read.r*255) % widhtOfRange)));
+			if(pixel_read.r + error <= ditheringVariables[1]/255.0 )
+			{
+				error += pixel_read.r;
+				al_put_pixel(x, y, al_black);
+			}
+			else
+			{
+				error -= (1-pixel_read.r);
+				al_put_pixel(x, y, al_white);
+			}
 		}
+		error = 0.0;
 	}
-	al_unlock_bitmap(outputBitmap);}
+	al_unlock_bitmap(outputBitmap);
+}
+
+void one_direction_zigzag_dithering()
+{
+	al_set_target_bitmap(outputBitmap);
+	al_lock_bitmap(outputBitmap, al_get_bitmap_format(outputBitmap), ALLEGRO_LOCK_WRITEONLY);
+	//outputBitmap = al_clone_bitmap(inputBitmap);
+
+	ALLEGRO_COLOR al_black = al_map_rgb(0, 0, 0);
+	ALLEGRO_COLOR al_white = al_map_rgb(255, 255, 255);
+	ALLEGRO_COLOR pixel_read;
+	float error = 0;
+
+	for(int y=0; y<YpicSize; y++)
+	{
+		int x;
+		for( (y%2 ? x=0 : x=YpicSize-1); (y%2 ? x<XpicSize : x>=0); (y%2 ? x++ : x--))
+		{
+			pixel_read = al_get_pixel(inputBitmap, x, y);
+			if(pixel_read.r + error <= ditheringVariables[1]/255.0 )
+			{
+				error += pixel_read.r;
+				al_put_pixel(x, y, al_black);
+			}
+			else
+			{
+				error -= (1-pixel_read.r);
+				al_put_pixel(x, y, al_white);
+			}
+		}
+		//error = 0.0;
+	}
+	al_unlock_bitmap(outputBitmap);
+}
 
 void dither(char mode)
 {
@@ -243,9 +387,13 @@ void dither(char mode)
 	al_flip_display();
 	switch(mode)
 	{
-	case 1: threshold_dithering(); break;
-	case 2: simple_ranges_dithering(); break;
-	case 3: extended_ranges_dithering(); break;
+	case 1: simple_threshold_dithering(0); break;			// simple threshold dithering
+	case 2: simple_threshold_dithering(1); break;			// RANDOM dithering
+	case 3: three_directions_threshold_dithering(); break;	// threshold dithering with spreading of brightness
+	case 4: one_direction_dithering(); break;
+	case 5: leveling_dithering(); break;					// leveling dithering
+	case 6: one_direction_zigzag_dithering(); break;
+	case 7: floyd_steinberg_dithering(); break;
 	}
 	redraw();
 }
@@ -254,9 +402,7 @@ void dither(char mode)
 
 int main(int argc, char **argv)
 {
-
-
-	ditheringVariables[1] = 150;
+	ditheringVariables[1] = 128;
 	ditheringVariables[2] = 15;
 	if(!al_init()) 
 	{
@@ -267,7 +413,7 @@ int main(int argc, char **argv)
 	if(argc > 1)
 		inputBitmap = al_load_bitmap(argv[1]);
 	else
-		inputBitmap = al_load_bitmap("input.bmp");
+		inputBitmap = al_load_bitmap("kostka1.bmp");
 	if(!inputBitmap)
 	{
 		al_show_native_message_box(display, "Error", "Error", "Could not load image neither looking for input.bmp file nor filename given in first program argument.", NULL, ALLEGRO_MESSAGEBOX_ERROR);
@@ -286,8 +432,6 @@ int main(int argc, char **argv)
 
 	redraw();
 
-	//al_lock_bitmap(inputBitmap, al_get_bitmap_flags(inputBitmap), ALLEGRO_LOCK_READONLY);
-
 	while(1)
 	{
 		al_wait_for_event(event_queue, &ev);
@@ -299,43 +443,53 @@ int main(int argc, char **argv)
 			{
 			case ALLEGRO_KEY_1:
 			case ALLEGRO_KEY_PAD_1: 
-					dithering_mode = 1; // threshold mode
+					dithering_mode = 1;
 					break;
 			case ALLEGRO_KEY_2:
 			case ALLEGRO_KEY_PAD_2:
-					dithering_mode = 2; // simple ranges mode
+					dithering_mode = 2;
 					break;
 			case ALLEGRO_KEY_3:
 			case ALLEGRO_KEY_PAD_3:
-					dithering_mode = 3; // simple ranges mode
+					dithering_mode = 3;
 					break;
-	/*		case ALLEGRO_KEY_4:
+			case ALLEGRO_KEY_4:
 			case ALLEGRO_KEY_PAD_4:
+					dithering_mode = 4;
+					break;
 			case ALLEGRO_KEY_5:
 			case ALLEGRO_KEY_PAD_5:
+					dithering_mode = 5;
+					break;
 			case ALLEGRO_KEY_6:
-			case ALLEGRO_KEY_PAD_6: */
+			case ALLEGRO_KEY_PAD_6:
+					dithering_mode = 6;
+					break; 
+			case ALLEGRO_KEY_7:
+			case ALLEGRO_KEY_PAD_7:
+					dithering_mode = 7;
+					break; 
 			case ALLEGRO_KEY_PAD_PLUS: 
 				switch(dithering_mode)
 				{
-				case 1: ditheringVariables[1]+=3; break;
-				case 3:
 				case 2: if(ditheringVariables[2] != 255) ditheringVariables[2]++; break;
+				case 1: 
+				case 3:
+				default: ditheringVariables[1]+=3; break;
 				}				
 			break;
 			case ALLEGRO_KEY_PAD_MINUS: 
 				switch(dithering_mode)
 				{
-				case 1: ditheringVariables[1]-=3; break;
-				case 3: 
 				case 2: if(ditheringVariables[2] != 0) ditheringVariables[2]--; break;
+				case 1: 
+				case 3: 
+				default: ditheringVariables[1]-=3; break;
 				}
 			break;
 
 			}
 			dither(dithering_mode);
-			//al_rest(0.1); 
 		}
 	}
-
 }
