@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <allegro5\allegro5.h>
 #include <allegro5\allegro_ttf.h>
@@ -16,13 +15,12 @@ ALLEGRO_TIMER *timer = NULL;
 ALLEGRO_EVENT ev;
 ALLEGRO_BITMAP *inputBitmap;
 ALLEGRO_BITMAP *outputBitmap;
-FILE *f;
 int XpicSize, YpicSize;
-unsigned char thresholdLevel;
+unsigned char thresholdLevel[9] = { 0, 70, 0, 127, 127, 127, 0, 0, 100 };
 char dithering_mode = 0;
 #define rgb(x) al_map_rgb((x), (x), (x))
 
-ALLEGRO_COLOR operator+ (ALLEGRO_COLOR c1, ALLEGRO_COLOR c2)   //float change)
+ALLEGRO_COLOR operator+ (ALLEGRO_COLOR c1, ALLEGRO_COLOR c2)   //float change
 {
 	ALLEGRO_COLOR result;
 	result = c1;
@@ -88,14 +86,7 @@ ALLEGRO_COLOR operator/ (ALLEGRO_COLOR c1, float divider)
 
 int initialize_allegro(int XwindowSize, int YwindowSize)
 {	
-	//if(!al_init()) 
-	//{
-	//	al_show_native_message_box(display, "Error", "Error", "Failed to initialize allegro!", 
- //                                NULL, ALLEGRO_MESSAGEBOX_ERROR);
-	//	return -1;
-	//}
-
-	display = al_create_display(XwindowSize, YwindowSize);
+	display = al_create_display((XwindowSize < 520 ? 520 : XwindowSize), YwindowSize);
 	if(!display) 
 	{
 		al_show_native_message_box(display, "Error", "Error", "failed to create display!", NULL, ALLEGRO_MESSAGEBOX_ERROR);
@@ -123,56 +114,48 @@ int initialize_allegro(int XwindowSize, int YwindowSize)
 		return -1;
 	}
 
-	//timer = al_create_timer(1.0 / freq);
-	//if(!timer) 
-	//{
-	//	al_destroy_display(display);
-	//	al_destroy_event_queue(event_queue);
-	//	al_destroy_font(font);
-	//	al_show_native_message_box(display, "Error", "Error", "Failed to initialize timer!", NULL, ALLEGRO_MESSAGEBOX_ERROR);
-	//	return -1;
-	//}
-
-
 	al_init_primitives_addon();
 	al_install_keyboard();
 	al_register_event_source(event_queue, al_get_display_event_source(display));
-	al_register_event_source(event_queue, al_get_keyboard_event_source());
-	//al_register_event_source(event_queue, al_get_timer_event_source(timer));
-	
+	al_register_event_source(event_queue, al_get_keyboard_event_source());	
 	al_init_font_addon();
 	return 1;
 }
 
 void redraw()
 {
-#define pos(x) (YpicSize+127+17*x)
+#define pos(x) (YpicSize+127+17*x)	// macro helping to calculate text vertical position
 	ALLEGRO_COLOR al_red = al_map_rgb(255, 150, 150);
 	ALLEGRO_COLOR al_white = al_map_rgb(255, 255, 255);
 	al_set_target_backbuffer(display);
 
-	al_clear_to_color(al_map_rgb(20, 20, 75));
-	al_draw_bitmap(inputBitmap, 0, 20, 0);
-	al_draw_bitmap(outputBitmap, XpicSize+10, 20, 0);
+	al_clear_to_color(al_map_rgb(20, 20, 75));			//clear display and set bg color
+	al_draw_bitmap(inputBitmap, 0, 20, 0);				// drawing input image
+	al_draw_bitmap(outputBitmap, XpicSize+10, 20, 0);	// drawing output image
 	al_draw_text(font, al_map_rgb(200, 200, 200), 0, 0, 0, "Original");
 	al_draw_text(font, al_map_rgb(200, 200, 200), XpicSize+10, 0, 0, "Processed");
-	al_draw_textf(font, al_map_rgb(255, 255, 255), 100, 30+YpicSize, 0, "Threshold level: %d", thresholdLevel);
-	al_draw_text(font, al_white, 10, pos(-4), 0, "Usage:");
+	if(dithering_mode != 0 && dithering_mode != 2 && dithering_mode != 6 && dithering_mode != 7)
+	{
+		al_draw_textf(font, al_map_rgb(255, 255, 200), 100, 30+YpicSize, 0, "Threshold level: %d", thresholdLevel[dithering_mode]);
+		al_draw_textf(font, al_map_rgb(255, 255, 200), 101, 30+YpicSize, 0, "Threshold level: %d", thresholdLevel[dithering_mode]);
+	}
+	al_draw_text(font, al_white, 10, pos(-4), 0, "Usage (keyboard):");
 	al_draw_text(font, al_white, 10, pos(-3), 0, "use [digits] to choose dithering type");
-	al_draw_text(font, al_white, 10, pos(-2), 0, "use [+] [-] to change threshold value if possible");
+	al_draw_text(font, al_white, 10, pos(-2), 0, "use [+] [-] to change variable if possible");
+	al_draw_text(font, al_white, 10, pos(-1), 0, "press [s] to SAVE dithered bitmap");
 
 	// modes list
-	al_draw_text(font, al_white, 10, pos(0), 0, "Mode:");
-	al_draw_text(font, (dithering_mode==1 ? al_red : al_white), 10, pos(1), 0, "1. Simple threshold dithering");
-	al_draw_text(font, (dithering_mode==2 ? al_red : al_white), 10, pos(2), 0, "2. Random dithering");
-	al_draw_text(font, (dithering_mode==3 ? al_red : al_white), 10, pos(3), 0, "3. single direction error dif. dithering");
-	al_draw_text(font, (dithering_mode==4 ? al_red : al_white), 10, pos(4), 0, "4. Changing direction single ED dithering");
-	al_draw_text(font, (dithering_mode==5 ? al_red : al_white), 10, pos(5), 0, "5. Sierra Lite dithering");
-	al_draw_text(font, (dithering_mode==6 ? al_red : al_white), 10, pos(6), 0, "6. Ordered 4x4 dithering");
-	al_draw_text(font, (dithering_mode==7 ? al_red : al_white), 10, pos(7), 0, "7. Ordered 8x8 dithering");
-	al_draw_text(font, (dithering_mode==8 ? al_red : al_white), 10, pos(8), 0, "8. Floyd-Steinberg dithering");
+	al_draw_text(font, al_white, 10, pos(1), 0, "Mode:");
+	al_draw_text(font, (dithering_mode==1 ? al_red : al_white), 10, pos(2), 0, "1. Simple threshold dithering");
+	al_draw_text(font, (dithering_mode==2 ? al_red : al_white), 10, pos(3), 0, "2. Random dithering");
+	al_draw_text(font, (dithering_mode==3 ? al_red : al_white), 10, pos(4), 0, "3. single direction error dif. dithering");
+	al_draw_text(font, (dithering_mode==4 ? al_red : al_white), 10, pos(5), 0, "4. Changing direction single ED dithering");
+	al_draw_text(font, (dithering_mode==5 ? al_red : al_white), 10, pos(6), 0, "5. Sierra Lite dithering");
+	al_draw_text(font, (dithering_mode==6 ? al_red : al_white), 10, pos(7), 0, "6. Ordered 4x4 dithering");
+	al_draw_text(font, (dithering_mode==7 ? al_red : al_white), 10, pos(8), 0, "7. Ordered 8x8 dithering");
+	al_draw_text(font, (dithering_mode==8 ? al_red : al_white), 10, pos(9), 0, "8. Floyd-Steinberg dithering");
 
-	al_flip_display();
+	al_flip_display();	//apply changes and show result to user
 }
 
 void simple_threshold_dithering(char random)
@@ -180,6 +163,7 @@ void simple_threshold_dithering(char random)
 	if(random)
 		srand(time(NULL));
 	al_set_target_bitmap(outputBitmap);
+	// store image in memory in write-only mode
 	al_lock_bitmap(outputBitmap, al_get_bitmap_format(outputBitmap), ALLEGRO_LOCK_WRITEONLY);
 
 	ALLEGRO_COLOR al_black = al_map_rgb(0, 0, 0);
@@ -190,8 +174,9 @@ void simple_threshold_dithering(char random)
 	{
 		for(int x=0; x<XpicSize; x++)
 		{
+			//for every pixel of bitmap read its brightness and check whether it is above or below given level and change this pixel to pure white or black.
 			pixel_read = al_get_pixel(inputBitmap, x, y);
-			if(pixel_read.r <= (random ? (rand()%255)/255.0 : thresholdLevel/255.0) )
+			if(pixel_read.r <= (random ? (rand()%255)/255.0 : thresholdLevel[1]/255.0) )
 				al_put_pixel(x, y, al_black);
 			else
 				al_put_pixel(x, y, al_white);
@@ -218,17 +203,16 @@ void sierra_lite_dithering()
 		for(int x=0; x < XpicSize; x++)
 		{
 			pixel_read = al_get_pixel(cloneBitmap, x, y);
-			if(pixel_read.r <= thresholdLevel/255.0)
+			if(pixel_read.r <= thresholdLevel[5]/255.0)
 			{
 				al_set_target_bitmap(cloneBitmap);
+				// spread stolen brightness among pixel-neighbors in strict way
 				if(x != 0)
 					al_put_pixel((x-1), (y+1), al_get_pixel(cloneBitmap, (x-1), (y+1)) + (pixel_read * 1 / 4));	// under left
 				if(x < XpicSize-1)
 					al_put_pixel((x+1), y, al_get_pixel(cloneBitmap, (x+1), y) + (pixel_read * 2 / 4));			// to the right
 				if(y < YpicSize-1)
 					al_put_pixel(x, (y+1), al_get_pixel(cloneBitmap, x, (y+1)) + (pixel_read * 1 / 4));			// under
-				//if(x < XpicSize-1 && y < YpicSize-1)
-				//	al_put_pixel((x+1), (y+1), al_get_pixel(cloneBitmap, (x+1), (y+1)) + (pixel_read / 4));		// under right
 				al_set_target_bitmap(outputBitmap);
 				al_put_pixel(x, y, al_black);
 			}
@@ -271,7 +255,7 @@ void floyd_steinberg_dithering()
 		for(int x=0; x < XpicSize; x++)
 		{
 			pixel_read = al_get_pixel(cloneBitmap, x, y);
-			if(pixel_read.r <= thresholdLevel/255.0)
+			if(pixel_read.r <= thresholdLevel[8]/255.0)
 			{
 				al_set_target_bitmap(cloneBitmap);
 				if(x != 0)
@@ -310,7 +294,6 @@ void one_direction_dithering()
 {
 	al_set_target_bitmap(outputBitmap);
 	al_lock_bitmap(outputBitmap, al_get_bitmap_format(outputBitmap), ALLEGRO_LOCK_WRITEONLY);
-	//outputBitmap = al_clone_bitmap(inputBitmap);
 
 	ALLEGRO_COLOR al_black = al_map_rgb(0, 0, 0);
 	ALLEGRO_COLOR al_white = al_map_rgb(255, 255, 255);
@@ -324,7 +307,7 @@ void one_direction_dithering()
 		for(int x=0; x<XpicSize; x++)
 		{
 			pixel_read = al_get_pixel(inputBitmap, x, y);
-			if(pixel_read.r + error <= thresholdLevel/255.0 )
+			if(pixel_read.r + error <= thresholdLevel[3]/255.0 )
 			{
 				error += pixel_read.r;
 				al_put_pixel(x, y, al_black);
@@ -349,15 +332,15 @@ void one_direction_zigzag_dithering()
 	ALLEGRO_COLOR al_black = al_map_rgb(0, 0, 0);
 	ALLEGRO_COLOR al_white = al_map_rgb(255, 255, 255);
 	ALLEGRO_COLOR pixel_read;
-	float error = 0;
+	float error = 0;	// variable to save stolen brigtness and later after it exceeds the threshold pixels changes into opposite and also saves the error here
 
 	for(int y=0; y<YpicSize; y++)
 	{
 		int x;
-		for( (y%2 ? x=0 : x=XpicSize-1); (y%2 ? x<XpicSize : x>=0); (y%2 ? x++ : x--))
+		for( (y%2 ? x=0 : x=XpicSize-1); (y%2 ? x<XpicSize : x>=0); (y%2 ? x++ : x--)) //every pass the direction of operation changes
 		{
 			pixel_read = al_get_pixel(inputBitmap, x, y);
-			if(pixel_read.r + error <= thresholdLevel/255.0 )
+			if(pixel_read.r + error <= thresholdLevel[4]/255.0 )
 			{
 				error += pixel_read.r;
 				al_put_pixel(x, y, al_black);
@@ -375,6 +358,7 @@ void one_direction_zigzag_dithering()
 
 void ordered_4x4_dithering()
 {
+	// mode in which threshold for specific pixel is being read from algorythm coordinates modulo array_size
 	float bayer_map[4][4] = 
 	{	{15*1,  15*9,  15*3,  15*11},
 		{15*13, 15*5,  15*15, 15*7 },
@@ -437,7 +421,8 @@ void ordered_8x8_dithering()
 
 void dither(char mode)
 {
-	al_draw_text(font, al_map_rgb(200, 255, 200), 100, YpicSize+50, 0, "working...");
+	thresholdLevel[0] = 0;
+	al_draw_text(font, al_map_rgb(200, 255, 200), XpicSize+20, 30, 0, "working...");
 	al_flip_display();
 	switch(mode)
 	{
@@ -453,17 +438,15 @@ void dither(char mode)
 	}
 	redraw();
 }
-//dodajac nowy algorytm: dither(), zmienna wlasna +/-, napis zmiennej
-// TODO: algorytm z dzieleniem na sasiadow, lista algorytmow, 
 
 int main(int argc, char **argv)
 {
-	thresholdLevel = 128;
 	if(!al_init()) 
 	{
 		al_show_native_message_box(display, "Error", "Error", "Failed to initialize allegro!", NULL, ALLEGRO_MESSAGEBOX_ERROR);
 		return -1;
 	}
+	// first image is loaded to determine size of window.
 	al_init_image_addon();
 	if(argc > 1)
 		inputBitmap = al_load_bitmap(argv[1]);
@@ -471,17 +454,18 @@ int main(int argc, char **argv)
 		inputBitmap = al_load_bitmap("input.bmp");
 	if(!inputBitmap)
 	{
-		al_show_native_message_box(display, "Error", "Error", "Could not load image neither looking for input.bmp file nor filename given in first program argument.", NULL, ALLEGRO_MESSAGEBOX_ERROR);
+		al_show_native_message_box(display, "Error", "Input file not found", "Could not load image neither looking for input.bmp file nor filename given in first program argument.", NULL, ALLEGRO_MESSAGEBOX_ERROR);
 		return 0;
 	}
 	XpicSize = al_get_bitmap_width(inputBitmap);
 	YpicSize = al_get_bitmap_height(inputBitmap);
-	initialize_allegro( XpicSize*2+10, YpicSize+300 );
+	// now we can freely initialize rest of allegro things
+	initialize_allegro( XpicSize*2+10, YpicSize+320 );
 
 	outputBitmap = al_clone_bitmap(inputBitmap);
 	if(!outputBitmap)
 	{
-		al_show_native_message_box(display, "Error", "Error", "Error creating clone of bitmap.", NULL, ALLEGRO_MESSAGEBOX_ERROR);
+		al_show_native_message_box(display, "Error", "Runtime error", "Error creating clone of bitmap.", NULL, ALLEGRO_MESSAGEBOX_ERROR);
 		return 0;
 	}
 
@@ -497,50 +481,41 @@ int main(int argc, char **argv)
 			switch(ev.keyboard.keycode)
 			{
 			case ALLEGRO_KEY_0:
-			case ALLEGRO_KEY_PAD_0: 
-					dithering_mode = 0;
-					break;
+			case ALLEGRO_KEY_PAD_0: dithering_mode = 0;	break;
 			case ALLEGRO_KEY_1:
-			case ALLEGRO_KEY_PAD_1: 
-					dithering_mode = 1;
-					break;
+			case ALLEGRO_KEY_PAD_1: dithering_mode = 1; break;
 			case ALLEGRO_KEY_2:
-			case ALLEGRO_KEY_PAD_2:
-					dithering_mode = 2;
-					break;
+			case ALLEGRO_KEY_PAD_2:	dithering_mode = 2;	break;
 			case ALLEGRO_KEY_3:
-			case ALLEGRO_KEY_PAD_3:
-					dithering_mode = 3;
-					break;
+			case ALLEGRO_KEY_PAD_3:	dithering_mode = 3;	break;
 			case ALLEGRO_KEY_4:
-			case ALLEGRO_KEY_PAD_4:
-					dithering_mode = 4;
-					break;
+			case ALLEGRO_KEY_PAD_4:	dithering_mode = 4;	break;
 			case ALLEGRO_KEY_5:
-			case ALLEGRO_KEY_PAD_5:
-					dithering_mode = 5;
-					break;
+			case ALLEGRO_KEY_PAD_5:	dithering_mode = 5;	break;
 			case ALLEGRO_KEY_6:
-			case ALLEGRO_KEY_PAD_6:
-					dithering_mode = 6;
-					break; 
+			case ALLEGRO_KEY_PAD_6:	dithering_mode = 6;	break; 
 			case ALLEGRO_KEY_7:
-			case ALLEGRO_KEY_PAD_7:
-					dithering_mode = 7;
-					break; 
+			case ALLEGRO_KEY_PAD_7:	dithering_mode = 7; break; 
 			case ALLEGRO_KEY_8:
-			case ALLEGRO_KEY_PAD_8:
-					dithering_mode = 8;
-					break; 
+			case ALLEGRO_KEY_PAD_8:	dithering_mode = 8; break; 
 			case ALLEGRO_KEY_PAD_PLUS: 
-				thresholdLevel+=3;
-			break;
+				thresholdLevel[dithering_mode]+=3;
+				break;
 			case ALLEGRO_KEY_PAD_MINUS: 
-				thresholdLevel-=3;
+				thresholdLevel[dithering_mode]-=3;
 			break;
-
+			case ALLEGRO_KEY_S:	//image saving operations
+				if(al_save_bitmap("your_dithered_image.bmp", outputBitmap))
+				{
+					al_draw_filled_rectangle(0, 0, 500, 40, al_map_rgb(20, 75, 20));
+					al_draw_text(font, al_map_rgb(150, 255, 150), 0, 5, 0, "Saved as your_dithered_image.bmp, press any key");
+					al_flip_display();
+					continue;
+				}
+				break;
 			}
-			dither(dithering_mode);
+			thresholdLevel[0] != 1;
+				dither(dithering_mode);
 		}
 	}
 }
